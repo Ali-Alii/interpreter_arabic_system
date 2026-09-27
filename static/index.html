@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sawt · Arabic, as spoken</title><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="Sawt home"><span class="brand-symbol" lang="ar">ص</span> sawt<span class="brand-dot">.</span></a><span class="header-note">ARABIC, AS SPOKEN</span><span id="engine-status" class="status">Checking engine</span></header>
+<main>
+ <section class="intro"><div class="eyebrow"><span></span> FROM YOUR VOICE TO THE PAGE</div><h1>Every word.<br>Every <em>ending.</em></h1><p>Speak Arabic. See your words with harakat and tanween<br class="desktop"> on the last letter—drawn from your recording.</p><div class="arabic-intro" lang="ar" dir="rtl">صوتكَ، كما تنطقُهُ.</div></section>
+ <div class="workspace">
+  <section class="record-card" aria-labelledby="record-title"><div class="card-top"><span class="step">01 / RECORD</span><span class="pill">العربية</span></div><h2 id="record-title">Let your voice lead.</h2><p class="muted">A sentence or a short paragraph.<br>Pause naturally between sentences.</p>
+   <div class="recorder"><div class="mic-halo"><button id="mic" class="mic" aria-label="Start recording"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></button></div><strong id="record-label">Tap to start recording</strong><span id="timer">00:00 <span>/ 02:00</span></span><canvas id="wave" width="520" height="70" aria-label="Microphone level"></canvas></div>
+   <label class="upload" id="upload-label" for="upload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg> Or upload a WAV recording<input type="file" id="upload" accept="audio/wav,.wav"></label><p class="privacy">Processed on this computer · Up to 2 minutes</p>
+  </section>
+  <section class="result-card" aria-labelledby="result-title"><div class="card-top"><span class="step">02 / TRANSCRIPT</span><span class="live-dot" id="result-state">Waiting for your voice</span></div><div class="result-heading"><h2 id="result-title">Your words, their endings.</h2><button id="copy" class="text-button" disabled>Copy text ↗</button></div>
+   <div id="empty"><div class="sample-arabic" lang="ar" dir="rtl">لكلِّ صوتٍ أثرٌ</div><p>Your transcript will appear here.</p><span>The line above is an illustration, not a recording.</span></div><div id="transcript" lang="ar" dir="rtl" hidden></div>
+   <div id="playback" hidden><span class="small-label">LISTEN BACK</span><audio id="audio" controls></audio></div>
+   <div id="result-meta" hidden><span id="word-count"></span><button id="download" class="text-button">Save transcript ↓</button></div>
+   <details id="details" hidden><summary>Review the original model output</summary><p lang="ar" dir="rtl" id="raw"></p><p class="muted">Only display marks are filtered. A missing mark is left missing; it is not treated as sukun.</p></details>
+   <div class="result-footer"><span class="mini-mark">ـٌ</span><p>Final-letter marks only<span>No separate grammar correction is applied.</span></p></div>
+  </section>
+ </div>
+ <div id="message" role="status" aria-live="polite"></div>
+ <section class="bottom-row"><div><span class="small-label">MADE FOR CLOSE LISTENING</span><p>Fatḥa <b lang="ar">ـَ</b> &nbsp; Ḍamma <b lang="ar">ـُ</b> &nbsp; Kasra <b lang="ar">ـِ</b> &nbsp; Tanween <b lang="ar">ـً ـٌ ـٍ</b> &nbsp; Sukun <b lang="ar">ـْ</b></p></div><div class="accuracy"><span class="small-label">ACCURACY TARGET &gt;90%</span><p>Not yet measured on your voice.<br>Predictions can still miss or normalize an ending.</p></div></section>
+ <details class="help"><summary>A note on pronunciation and accuracy</summary><p>Speak the ending you want transcribed, even when it is grammatically unusual. The system uses an audio-trained model, but it cannot guarantee verbatim endings. Compare the output with your recording. Brief pauses help preserve word boundaries; pause at least every 25 seconds. Fatḥatan before a supporting alif is displayed on the final alif, as requested. The original model output remains available above.</p><p>To establish accuracy, use the included evaluation script with recordings and human-checked references, including incorrect endings and paused speech. General diacritic benchmarks do not establish final-word accuracy for this app.</p></details>
+</main><footer><span class="brand">sawt.</span><span>A little more attention to the way you speak.</span><button id="prepare" class="text-button">Load speech model ↗</button></footer>
+<script src="/static/app.js" defer></script>
+</body></html>
