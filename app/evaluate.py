@@ -55,6 +55,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', type=Path)
     parser.add_argument('--output', type=Path, default=Path('evaluation-results.json'))
+    parser.add_argument('--pause-only', action='store_true', help='Use the old pause-only baseline (rejects continuous speech over 25 seconds).')
     args = parser.parse_args()
     rows = [json.loads(line) for line in args.manifest.read_text(encoding='utf-8-sig').splitlines() if line.strip()]
     if not rows: parser.error('The evaluation manifest is empty.')
@@ -65,8 +66,11 @@ def main():
         else:
             from app.audio import decode_audio, split_at_silence
             from app.engine import engine
+            from app.merge import merge_segments
             audio = decode_audio((args.manifest.parent / row['audio']).read_bytes())
-            prediction = ' '.join(engine.transcribe(audio[a:b]) for a,b in split_at_silence(audio))
+            segments = [{'start':a/16000, 'end':b/16000, 'raw':engine.transcribe(audio[a:b])}
+                        for a,b in split_at_silence(audio, allow_overlap=not args.pause_only)]
+            prediction, _ = merge_segments(segments)
         results.append({'id':row.get('id', row.get('audio')), 'prediction':prediction,
                         **score(row['reference'], prediction)})
     correct = sum(r['correct_words_and_endings'] for r in results)

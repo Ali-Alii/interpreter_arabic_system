@@ -24,9 +24,21 @@ def test_no_word_cut_and_no_overlap():
     assert spans[0][0] == 0 and spans[-1][1] == len(audio)
 
 
-def test_continuous_long_speech_rejected():
-    with pytest.raises(ValueError, match='Pause'):
-        split_at_silence(tone(26))
+def test_continuous_speech_overlaps_without_gaps():
+    spans = split_at_silence(tone(65))
+    assert spans == [(0,25*RATE),(20*RATE,45*RATE),(40*RATE,65*RATE)]
+
+
+def test_old_baseline_available_for_comparison():
+    with pytest.raises(ValueError, match='pause-only'):
+        split_at_silence(tone(26), allow_overlap=False)
+
+
+def test_two_minute_continuous_audio_keeps_every_sample():
+    spans = split_at_silence(tone(120))
+    assert spans[0][0] == 0 and spans[-1][1] == 120*RATE
+    assert all(b-a <= 25*RATE for a,b in spans)
+    assert all(c <= b for (_,b),(c,_) in zip(spans,spans[1:]))
 
 
 def test_silence_rejected():

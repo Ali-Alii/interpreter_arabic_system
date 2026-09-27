@@ -1,4 +1,4 @@
-"""Decode PCM WAV and split only in silence, never inside continuous speech."""
+"""Decode PCM WAV; prefer pauses and overlap when speech is continuous."""
 from io import BytesIO
 from math import gcd
 import numpy as np
@@ -8,6 +8,7 @@ from scipy.signal import resample_poly
 RATE = 16000
 MAX_SECONDS = 120
 CHUNK_SECONDS = 25
+OVERLAP_SECONDS = 5
 
 
 def decode_audio(data: bytes) -> np.ndarray:
@@ -33,7 +34,7 @@ def decode_audio(data: bytes) -> np.ndarray:
     return audio
 
 
-def split_at_silence(audio: np.ndarray) -> list[tuple[int, int]]:
+def split_at_silence(audio: np.ndarray, *, allow_overlap=True) -> list[tuple[int, int]]:
     frame = 320
     rms = np.array([np.sqrt(np.mean(audio[i:i+frame] ** 2)) for i in range(0, len(audio), frame)])
     threshold = max(0.0005, min(0.008, float(np.percentile(rms, 90)) * 0.08))
@@ -50,9 +51,17 @@ def split_at_silence(audio: np.ndarray) -> list[tuple[int, int]]:
     spans, left = [], 0
     limit = CHUNK_SECONDS * RATE
     while len(audio) - left > limit:
-        candidates = [p for p in cuts if left + RATE < p <= left + limit]
+        # Prefer a pause in the latter portion of a chunk. An early pause must
+        # not create tiny chunks followed by a second split inside the overlap.
+        minimum = 10 * RATE if allow_overlap else RATE
+        candidates = [p for p in cuts if left + minimum < p <= left + limit]
         if not candidates:
-            raise ValueError('Pause briefly between sentences: more than 25 seconds of continuous speech cannot be safely split without risking word endings.')
+            if not allow_overlap:
+                raise ValueError('The pause-only baseline cannot split more than 25 seconds of continuous speech.')
+            right = left + limit
+            spans.append((left, right))
+            left = right - OVERLAP_SECONDS * RATE
+            continue
         right = max(candidates)
         spans.append((left, right))
         left = right

@@ -101,7 +101,7 @@ async function start() {
     recording = true; startedAt = performance.now();
     $('mic').classList.add('recording'); $('mic').setAttribute('aria-label', 'Stop recording and transcribe');
     $('record-label').textContent = 'Listening… tap to finish';
-    message('Speak naturally and pronounce each ending. Pause briefly between sentences.');
+    message('Speak naturally and pronounce each ending. No fixed pauses are needed. Up to two minutes.');
     clock = setInterval(() => {
       const s = Math.min(120, Math.floor((performance.now() - startedAt) / 1000));
       $('timer').innerHTML = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')} <span>/ 02:00</span>`;
@@ -147,10 +147,12 @@ async function transcribe(blob) {
     const data = await api('/api/transcribe', {method:'POST', body:form});
     resultText = data.text; $('transcript').textContent = data.text;
     $('empty').hidden = true; $('transcript').hidden = false; $('copy').disabled = false;
-    $('raw').textContent = data.raw_text; $('details').hidden = false; $('result-meta').hidden = false;
+    $('raw').textContent = data.joins?.length ? data.segments.map(s => `${s.start.toFixed(1)}–${s.end.toFixed(1)} s\n${s.raw}`).join('\n\n') : data.raw_text;
+    $('details').hidden = false; $('result-meta').hidden = false;
     $('word-count').textContent = `${data.words.length} words · ${data.duration.toFixed(1)} seconds`;
     $('result-state').textContent = 'Ready to review';
-    message('Your transcript is ready. Listen back to check the endings; no accuracy score has been established yet.');
+    const review = (data.warnings || []).filter(w => w.startsWith('Review '));
+    message(review.length ? `Transcript ready, with joins to check. ${review.join(' ')}` : 'Your transcript is ready. Listen back to check the endings; no accuracy score has been established yet.');
   } catch (error) { message(error.message, true); $('result-state').textContent = 'Recording needs attention'; }
   finally { busy = false; $('record-label').textContent = 'Tap to record again'; controls(); status(); }
 }

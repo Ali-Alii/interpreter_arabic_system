@@ -37,11 +37,11 @@ Pipeline:
 
 1. Capture mono PCM in an AudioWorklet, preserving the browser's actual sample rate. Avoid browser speech recognition and its normalization.
 2. Decode WAV, check duration/level, and resample once to 16 kHz.
-3. For longer paragraphs, split only within detected pauses of at least 360 ms, into segments of at most 25 seconds. There is no overlapping transcript merge or deduplication that could delete deliberately repeated words. More than 25 seconds of uninterrupted speech is rejected with a request to pause; a word is never intentionally cut at an arbitrary duration.
+3. For longer paragraphs, prefer detected pauses of at least 360 ms. If no suitable pause exists, use 25-second chunks with 5 seconds of shared audio. Match suffix/prefix words with edit-distance alignment, then place the join near the middle of the overlap. Complete word predictions, including their marks, come from one side; endings are not grammatically corrected. Ambiguous joins retain both versions and receive a review warning. Repeated phrases, variable speech rate, and recognition errors can still cause duplication or omission. This is a heuristic, not acoustic forced alignment.
 4. Generate letters and diacritics together from the audio. There is no separate word/phoneme alignment step to attach vowels to a second transcript. Returned segment times refer to audio chunks, **not word timestamps**. Silence detection is an energy heuristic and can fail in noisy recordings.
-5. Strip internal vowel marks using Unicode character clusters. Preserve predicted final marks, punctuation, spelling, hamza, and repeated words. Never infer a missing mark or change it into sukun. When fatḥatan occurs before a supporting alif, move that existing fatḥatan to the final alif for the literal final-letter display convention. The original unfiltered output is available for review.
+5. Strip internal vowel marks using Unicode character clusters. Preserve predicted final marks, punctuation, spelling, hamza, and repeated words. Never infer a missing mark or change it into sukun. When fatḥatan occurs before a supporting alif, move that existing fatḥatan to the final alif for the literal final-letter display convention. The original per-chunk output is available for review when audio overlaps.
 
-Limits: one speaker, up to 120 seconds, WAV under 25 MB, pauses at least every 25 seconds. Clear MSA with explicitly pronounced endings is the intended input. Dialect, silence, background noise, assimilation, and pause pronunciation need separate evaluation.
+Limits: one speaker, up to 120 seconds, WAV under 25 MB, no mandatory pauses. Clear MSA with explicitly pronounced endings is the intended input. Dialect, silence, background noise, assimilation, and pause pronunciation need separate evaluation.
 
 ## Measure the actual >90% requirement
 
@@ -86,3 +86,7 @@ The API contract tests stub model inference and are explicitly not acoustic test
 - `POST /api/transcribe`: multipart field `file` containing WAV; returns display text, raw text, audio segment ranges, words, and limitations.
 
 One inference job runs at a time; competing requests receive HTTP 409. This server is intended for local use and binds only to loopback.
+
+## Test continuous speech
+
+Record a paragraph naturally for 30–60 seconds, save the WAV, and listen back while checking the transcript. Pay particular attention to reported join ranges and deliberately incorrect endings. Use the same audio and a human-checked reference when comparing versions; different recordings do not isolate algorithm changes. The evaluation command uses overlap merging by default. Add --pause-only to reproduce the previous segmentation baseline on recordings it accepts. Continuous recordings rejected by that baseline have no baseline accuracy score. Unit tests exercise long audio and transcript merging with stub predictions; they do not establish real-world accuracy.

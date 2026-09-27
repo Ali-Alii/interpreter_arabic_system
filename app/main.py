@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 from app.arabic import final_only, tokens, ending
 from app.audio import decode_audio, split_at_silence, RATE
 from app.engine import engine, MODEL_ID, ROOT, REVISION
+from app.merge import merge_segments
 
 app = FastAPI(title='Sawt — Arabic endings from speech')
 STATIC = Path(__file__).resolve().parents[1] / 'static'
@@ -70,14 +71,21 @@ def recognize(data):
             raw = engine.transcribe(audio[a:b])
             segments.append({'start': round(a/RATE, 3), 'end': round(b/RATE, 3),
                              'text': final_only(raw), 'raw': raw})
-        text = ' '.join(s['text'] for s in segments).strip()
+        raw_text, joins = merge_segments(segments)
+        text = final_only(raw_text)
         if not tokens(text):
             raise ValueError('No Arabic words were recognized. Try a clearer recording.')
         words = tokens(text)
-        return {'text': text, 'raw_text': ' '.join(s['raw'] for s in segments),
+        warnings = ['Model predictions may still normalize pronunciation. Final-ending accuracy has not been measured on your voice.']
+        for join in joins:
+            if join['status'] == 'unresolved':
+                warnings.append(f"Review {join['start']:.1f}–{join['end']:.1f}s: overlapping speech could not be joined reliably. Both versions were retained; some words may repeat.")
+            elif join['ending_conflicts']:
+                warnings.append(f"Review {join['start']:.1f}–{join['end']:.1f}s: the overlapping predictions disagree on {join['ending_conflicts']} word ending(s).")
+        return {'text': text, 'raw_text': raw_text, 'joins': joins,
                 'segments': segments, 'duration': round(len(audio)/RATE, 2),
                 'words': [{'text': w, 'ending': ending(w) or None} for w in words],
-                'warnings': ['Model predictions may still normalize pronunciation. Final-ending accuracy has not been measured on your voice.'],
+                'warnings': warnings,
                 'accuracy': None}
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc

@@ -39,3 +39,16 @@ def test_setup_status_is_reported(monkeypatch, tmp_path):
     cache.mkdir()
     (cache / 'setup-status.json').write_text('{"stage":"downloading","message":"Preparing model"}', encoding='utf-8')
     assert client.get('/api/status').json()['setup']['stage'] == 'downloading'
+
+
+def test_long_continuous_audio_transcribes_instead_of_rejecting(monkeypatch):
+    answers = iter(['ذهبِ الطالبَ إلى المدرسةُ في الصباحَ', 'إلى المدرسةُ في الصباحَ ثم عادَ'])
+    monkeypatch.setattr(engine, 'transcribe', lambda audio: next(answers))
+    buf = BytesIO()
+    sf.write(buf, .1*np.sin(np.arange(30*16000)*.1), 16000, format='WAV')
+    response = client.post('/api/transcribe', files={'file':('test.wav', buf.getvalue(), 'audio/wav')})
+    assert response.status_code == 200
+    data = response.json()
+    assert data['text'] == 'ذهبِ الطالبَ إلى المدرسةُ في الصباحَ ثم عادَ'
+    assert data['segments'][1]['start'] == 20
+    assert data['joins'][0]['status'] == 'merged'
