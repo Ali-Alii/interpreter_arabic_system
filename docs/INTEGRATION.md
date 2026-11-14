@@ -66,3 +66,7 @@ Ali: GPU Space, model startup, GPU function, ffmpeg, public endpoint, source and
 Summary counts all findings. Its accuracy is correct / (correct + incorrect + uncertain), or null when no comparison exists. This is a conservative reference-agreement fraction, not validated ASR accuracy. It can differ from strict_final_word_accuracy because that metric includes exact unmarked matches while pronunciation findings treat missing vowel evidence as uncertain. Do not exclude uncertain findings to inflate scores.
 
 The exact deployable code is available in the Hugging Face Space source tree linked above; the GitHub main branch still has older implementation files plus this integration handover. Use the Space source to reproduce the hosted API.
+
+## Deployment validation completed
+
+Anonymous calls to the deployed `/evaluate` passed with a browser-encoded WebM sample in both transcribe and compare_reference modes. The latter used a deliberately partial reference solely to verify summary/findings behavior; its score is not an accuracy result. Three local integration tests passed for reference isolation, invalid-mode rejection, and uncertain findings/null confidence. Multiple-speaker Arabic accuracy evaluation remains outstanding. FFmpeg packages.txt must use LF line endings; CRLF caused an apt package lookup failure during deployment and was corrected.
