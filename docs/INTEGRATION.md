@@ -1,19 +1,19 @@
-﻿# Platform integration deliverables
+# Platform integration deliverables
 
 Public microphone app: https://ali-alii-sawt-arabic-gpu.hf.space
 Space identifier: `Ali-Alii/sawt-arabic-gpu`
 Source and runtime: https://huggingface.co/spaces/Ali-Alii/sawt-arabic-gpu/tree/main
 
-## Proposed API v1
+## API v1
 
-The screenshots refer to a separate JSON specification that was not supplied. This is a proposed contract, not confirmation of compatibility with that missing specification. Mode names below are explicit; do not assume the colleague's existing mode values have the same meaning.
+The colleague supplied the JSON structure; this API implements transcript.diacritized and pronunciation with summary/findings. Mode semantics were not supplied, so the explicit modes below are our integration contract. Confidence is null because the model has no calibrated per-ending confidence. The receiving platform must accept nullable confidence and accuracy.
 
 Install `gradio_client` (tested locally with 2.7.1). Copy `integrations/arabic_wrapper_client.py` into the platform backend. Set variable `SAWT_SPACE=Ali-Alii/sawt-arabic-gpu`. Optionally set the caller's own `HF_TOKEN` in hosting Secrets. Do not send tokens to frontend code or commit them. Calls consume the caller's available quota and may queue or fail; authentication does not make service unlimited.
 
 ```python
 from arabic_wrapper_client import evaluate
 result = evaluate('recording.webm', 'ذهبَ الطالبُ', 'compare_reference')
-print(result['transcript'])
+print(result['transcript']['diacritized'])
 print(result['reference_comparison']['alignment'])
 ```
 
@@ -24,7 +24,8 @@ Gradio endpoint: `/evaluate`. Positional inputs: uploaded audio file, reference_
 Return JSON keys:
 - schema_version: `1.0`
 - mode: requested mode
-- transcript: Arabic with final marks only
+- transcript: object containing diacritized (Arabic with final marks only)
+- pronunciation: available, summary and findings matching the requested structure
 - raw_transcript: model text before final-letter formatting
 - duration_seconds: decoded audio duration
 - reference_comparison: null or the `app.evaluate.score` report
@@ -56,4 +57,12 @@ Keep test speakers/passages separate from tuning data. Report sample counts, per
 
 ## Division of work
 
-Ali: GPU Space, model startup, GPU function, ffmpeg, public endpoint, source and client example. Colleague: adapt his platform's wrapper to this proposed schema (or provide the missing schema), add Space name and own token in Secrets, deploy his backend, and run a complete exercise. No changes have been made to the colleague's platform and no message was sent to him.
+Ali: GPU Space, model startup, GPU function, ffmpeg, public endpoint, source and client example. Colleague: adapt his platform's wrapper to this schema, add Space name and own token in Secrets, deploy his backend, and run a complete exercise. No changes have been made to the colleague's platform and no message was sent to him.
+
+## Pronunciation response semantics
+
+`available` is true only in compare_reference mode. Each finding contains word, status, expected_ending, detected_ending, detection_confidence and explanation. Ending names: fatha, damma, kasra, fathatan, dammatan, kasratan, sukun; unavailable endings are null. Missing marks, inserted/deleted words, and spelling mismatches are uncertain. Other recognized words are correct/incorrect by exact final-mark agreement. Confidence is always null, never an invented probability.
+
+Summary counts all findings. Its accuracy is correct / (correct + incorrect + uncertain), or null when no comparison exists. This is a conservative reference-agreement fraction, not validated ASR accuracy. It can differ from strict_final_word_accuracy because that metric includes exact unmarked matches while pronunciation findings treat missing vowel evidence as uncertain. Do not exclude uncertain findings to inflate scores.
+
+The exact deployable code is available in the Hugging Face Space source tree linked above; the GitHub main branch still has older implementation files plus this integration handover. Use the Space source to reproduce the hosted API.
