@@ -61,9 +61,9 @@ Ali: GPU Space, model startup, GPU function, ffmpeg, public endpoint, source and
 
 ## Pronunciation response semantics
 
-`available` is true only in full mode. Each finding contains word, status, expected_ending, detected_ending, detection_confidence and explanation. Ending names: fatha, damma, kasra, tanwin_fath, tanwin_damm, tanwin_kasr, sukun; unavailable endings use none. Missing marks, inserted/deleted words, and spelling mismatches are uncertain. Other recognized words are correct/incorrect by exact final-mark agreement. Confidence is always null, never an invented probability.
+`available` is true only in full mode. Each finding contains word, status, expected_ending, detected_ending, detection_confidence and explanation. Ending names: fatha, damma, kasra, tanwin_fath, tanwin_damm, tanwin_kasr, sukun; unavailable endings use none. Matching words with identical unmarked endings count as correct reference agreement. One-sided missing marks, inserted/deleted words, and spelling mismatches are uncertain. Other recognized words are correct/incorrect by exact final-mark agreement. Confidence is always null, never an invented probability.
 
-Summary counts all findings. Its accuracy is correct / (correct + incorrect + uncertain), or null when no comparison exists. This is a conservative reference-agreement fraction, not validated ASR accuracy. It can differ from strict_final_word_accuracy because that metric includes exact unmarked matches while pronunciation findings treat missing vowel evidence as uncertain. Do not exclude uncertain findings to inflate scores.
+Summary counts all findings. Its accuracy is correct / (correct + incorrect + uncertain), or null when no comparison exists. This is a conservative reference-agreement fraction, not validated ASR accuracy. It can differ from strict_final_word_accuracy because that metric includes exact unmarked matches while pronunciation findings treat one-sided missing vowel evidence as uncertain. Do not exclude uncertain findings to inflate scores.
 
 The exact deployable code is available in the Hugging Face Space source tree linked above; the GitHub main branch still has older implementation files plus this integration handover. Use the Space source to reproduce the hosted API.
 
@@ -73,7 +73,7 @@ Anonymous calls to the deployed `/evaluate` passed with a browser-encoded WebM s
 
 ## Colleague compatibility update
 
-`light` returns transcript.diacritized and pronunciation: {"available": false}. `full` returns summary/findings when reference_text contains Arabic; an empty reference produces available=false. Codes are none, fatha, damma, kasra, tanwin_fath, tanwin_damm, tanwin_kasr, and **sukun** (the platform must add sukun). detection_confidence remains nullable. Missing audible-mark evidence is uncertain even if spelling matches, to avoid treating model omission as proven student error. Recognized words with differing explicit marks are incorrect; lexical mismatches are uncertain.
+`light` returns transcript.diacritized and pronunciation: {"available": false}. `full` returns summary/findings when reference_text contains Arabic; an empty reference produces available=false. Codes are none, fatha, damma, kasra, tanwin_fath, tanwin_damm, tanwin_kasr, and **sukun** (the platform must add sukun). detection_confidence remains nullable. One-sided missing audible-mark evidence is uncertain even if spelling matches; matching unmarked words count as correct, to avoid treating model omission as proven student error. Recognized words with differing explicit marks are incorrect; lexical mismatches are uncertain.
 
 Maximum recording duration remains **120 seconds**, input size **25 MB**. Longer recordings are rejected, not truncated. The colleague must show that limit explicitly rather than silently skip Arabic checking. Long-recording support has not been validated on free ZeroGPU.
 
@@ -89,3 +89,5 @@ print(result["pronunciation"])
 ```
 
 Accuracy deliverable: **not measured on an audio-verified research dataset; 0 verified benchmark recordings, 0 verified benchmark speakers**. Public sample smoke tests validate the API, not recognition accuracy. No percentage can responsibly be supplied from app.evaluate until a verified manifest is provided. The earlier package-install failure was caused by CRLF in packages.txt; the deploy script now emits LF bytes regardless of local checkout settings. The running Space previously completed real GPU inference using torch 2.11.0; a torch incompatibility was not the observed cause.
+
+Response mode uses light/full, including when legacy aliases are supplied. A full request with an empty reference remains mode=full with pronunciation.available=false. Matching none/none endings with matching spelling and marks count as correct reference agreement; this does not prove acoustic recognition accuracy.
